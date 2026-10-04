@@ -26,6 +26,16 @@ Instrument Serif + DM Sans y una paleta de acentos usada en dosis pequeñas.
 - Temporizador de 20 s, racha, vibración al responder y un dato curioso tras cada respuesta.
 - Resultados con repaso de cada pregunta y su respuesta correcta.
 - Respeta "reducir movimiento", usa áreas táctiles de 48 dp y etiquetas de accesibilidad.
+- **Responsive:** tamaños según la pantalla (`src/theme/useLayout.ts`), quiz en dos columnas en horizontal y desplazamiento automático a la explicación en pantallas bajas.
+
+### Animaciones (GSAP)
+
+`src/motion/` expone los mismos hooks (`useEnter`, `useFloat`, `useCountdown`, `useShake`, `usePress`, `useStaggerIn`) con dos implementaciones:
+
+- **Web (`index.web.ts`):** [GSAP](https://gsap.com) con `useGSAP`, anima el DOM directamente con transforms (sin re-renderizar React en cada cuadro) y respeta `prefers-reduced-motion` con `gsap.matchMedia()`.
+- **Android/iOS (`index.ts`):** GSAP no puede mover vistas nativas, así que se usa `Animated` con `useNativeDriver` (la animación corre en el hilo de UI).
+
+Las skills oficiales de GSAP ([gsap-skills](https://github.com/greensock/gsap-skills), MIT) están en `.claude/skills/gsap-*`.
 - La guía de diseño usada es la skill [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0), instalada en `.claude/skills/impeccable` sin sus hooks.
 
 ## Ejecutar
@@ -41,10 +51,11 @@ npm run typecheck
 ```
 src/
   app/          rutas (Expo Router): index, quiz/[id], results
-  components/   Illustration, ShapeGlyph, CategoryRow, AnswerOption, PressableScale
+  components/   Illustration, ShapeGlyph, Icon, CategoryRow, AnswerOption, PressableScale
+  motion/       animaciones: GSAP en web, Animated nativo en el teléfono
   data/         categorías y banco de preguntas (50 preguntas)
   lib/          lógica del quiz, SQLite, háptica
-  theme/        colores, radios y sombras
+  theme/        colores, tipografía y medidas responsive
 ```
 
 ## Guion sugerido para el video (máx. 5 min)

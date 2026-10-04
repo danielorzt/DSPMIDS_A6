@@ -1,7 +1,8 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { Animated, StyleSheet, Text } from 'react-native';
+import { useShake } from '../motion';
 import { fonts, radius, useTheme } from '../theme/theme';
+import { Icon } from './Icon';
 import { PressableScale } from './PressableScale';
 import { ShapeGlyph } from './ShapeGlyph';
 
@@ -12,21 +13,20 @@ type Props = {
   label: string;
   state: OptionState;
   disabled: boolean;
+  minHeight?: number;
   onPress: () => void;
 };
 
 const SHAPE_NAMES = ['triángulo', 'rombo', 'círculo', 'cuadrado'];
 
-export function AnswerOption({ index, label, state, disabled, onPress }: Props) {
+export function AnswerOption({ index, label, state, disabled, minHeight = 58, onPress }: Props) {
   const t = useTheme();
-  const shake = useRef(new Animated.Value(0)).current;
+  const { ref, style, shake } = useShake();
 
   useEffect(() => {
-    if (state !== 'wrong') return;
-    Animated.sequence(
-      [6, -6, 4, -4, 0].map((v) => Animated.timing(shake, { toValue: v, duration: 50, easing: Easing.out(Easing.quad), useNativeDriver: true })),
-    ).start();
-  }, [state, shake]);
+    if (state === 'wrong') shake();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const styles = useMemo(
     () =>
@@ -35,7 +35,7 @@ export function AnswerOption({ index, label, state, disabled, onPress }: Props) 
           flexDirection: 'row',
           alignItems: 'center',
           gap: 14,
-          minHeight: 58,
+          minHeight,
           borderWidth: 1.5,
           borderRadius: radius.md,
           paddingVertical: 12,
@@ -44,7 +44,7 @@ export function AnswerOption({ index, label, state, disabled, onPress }: Props) 
         },
         label: { flex: 1, color: t.ink, fontSize: 17, lineHeight: 23, fontFamily: fonts.medium },
       }),
-    [t],
+    [t, minHeight],
   );
 
   const tone =
@@ -55,7 +55,7 @@ export function AnswerOption({ index, label, state, disabled, onPress }: Props) 
         : { bg: t.surface, border: t.line };
 
   return (
-    <Animated.View style={{ transform: [{ translateX: shake }], opacity: state === 'dimmed' ? 0.45 : 1 }}>
+    <Animated.View ref={ref} style={[style, { opacity: state === 'dimmed' ? 0.45 : 1 }]}>
       <PressableScale
         onPress={onPress}
         disabled={disabled}
@@ -67,8 +67,8 @@ export function AnswerOption({ index, label, state, disabled, onPress }: Props) 
       >
         <ShapeGlyph index={index} />
         <Text style={styles.label}>{label}</Text>
-        {state === 'correct' && <MaterialCommunityIcons name="check" size={22} color={t.success} />}
-        {state === 'wrong' && <MaterialCommunityIcons name="close" size={22} color={t.danger} />}
+        {state === 'correct' && <Icon name="check" color={t.success} />}
+        {state === 'wrong' && <Icon name="close" color={t.danger} />}
       </PressableScale>
     </Animated.View>
   );

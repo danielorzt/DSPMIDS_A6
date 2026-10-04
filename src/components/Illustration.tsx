@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
-import { useReduceMotion } from '../lib/useReduceMotion';
+import { useFloat } from '../motion';
 import { useTheme } from '../theme/theme';
 
 export type ArtKind =
@@ -23,7 +22,7 @@ function burst(cx: number, cy: number, outer: number, inner: number, n: number) 
 type Parts = { tint: React.ReactNode; line: React.ReactNode; fill?: React.ReactNode };
 
 // Todas las piezas son dibujos propios sobre una cuadrícula de 120×120: sin marcas ni personajes de terceros.
-function parts(kind: ArtKind, ink: string): Parts {
+function parts(kind: ArtKind, _ink: string): Parts {
   switch (kind) {
     case 'controller':
       return {
@@ -396,32 +395,11 @@ type Props = { kind: ArtKind; tone: string; size?: number; animated?: boolean };
 /** Ilustración vectorial original: trazo de tinta + una mancha de color levemente desplazada. */
 export function Illustration({ kind, tone, size = 120, animated = true }: Props) {
   const t = useTheme();
-  const reduce = useReduceMotion();
-  const drift = useRef(new Animated.Value(0)).current;
+  const float = useFloat(animated);
   const { tint, line, fill } = parts(kind, t.ink);
 
-  useEffect(() => {
-    if (!animated || reduce) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(drift, { toValue: 0, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animated, reduce, drift]);
-
   return (
-    <Animated.View
-      accessible={false}
-      style={{
-        transform: [
-          { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [3, -5] }) },
-          { rotate: drift.interpolate({ inputRange: [0, 1], outputRange: ['-2deg', '2deg'] }) },
-        ],
-      }}
-    >
+    <Animated.View ref={float.ref} accessible={false} style={float.style}>
       <Svg width={size} height={size} viewBox="0 0 120 120">
         <G fill={tone} opacity={0.85}>{tint}</G>
         <G fill="none" stroke={t.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">{line}</G>
