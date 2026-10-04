@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Pixel Quest Trivia",
+    "slug": "pixel-quest-trivia",
+    "scheme": "pixelquest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0A1A",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.uniminuto.pixelquest"
+    },
+    "android": {
+      "package": "com.uniminuto.pixelquest",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0A1A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
