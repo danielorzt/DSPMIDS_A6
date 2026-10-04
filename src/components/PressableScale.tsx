@@ -1,24 +1,22 @@
-import { useRef } from 'react';
-import { Animated, Easing, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { tap } from '../lib/feedback';
+import { usePress } from '../motion';
 
 type Props = Omit<PressableProps, 'style'> & { style?: StyleProp<ViewStyle>; haptic?: boolean };
 
-/** Pressable con un leve hundimiento al tocar (ease-out corto, sin rebote). */
+/** Pressable con un leve hundimiento al tocar (GSAP en web, Animated nativo en el teléfono). */
 export function PressableScale({ style, onPressIn, onPressOut, onPress, haptic = true, children, ...rest }: Props) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const to = (v: number) =>
-    Animated.timing(scale, { toValue: v, duration: 110, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  const press = usePress();
 
   return (
     <Pressable
       {...rest}
       onPressIn={(e) => {
-        to(0.98);
+        press.onPressIn();
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        to(1);
+        press.onPressOut();
         onPressOut?.(e);
       }}
       onPress={(e) => {
@@ -26,7 +24,9 @@ export function PressableScale({ style, onPressIn, onPressOut, onPress, haptic =
         onPress?.(e);
       }}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>{children as React.ReactNode}</Animated.View>
+      <Animated.View ref={press.ref} style={[style, press.style]}>
+        {children as React.ReactNode}
+      </Animated.View>
     </Pressable>
   );
 }

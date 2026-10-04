@@ -1,14 +1,17 @@
-import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import { DMSans_400Regular } from '@expo-google-fonts/dm-sans/400Regular';
+import { DMSans_500Medium } from '@expo-google-fonts/dm-sans/500Medium';
+import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
+import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
+import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif/400Regular_Italic';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useTheme } from '../theme/theme';
 
 export default function RootLayout() {
   const t = useTheme();
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_700Bold,
@@ -16,7 +19,11 @@ export default function RootLayout() {
     InstrumentSerif_400Regular_Italic,
   });
 
-  if (!loaded) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
+  // En web no se bloquea la app esperando las fuentes (en redes móviles lentas tardan segundos):
+  // el texto aparece de inmediato y cambia a la tipografía final al terminar la descarga.
+  // En nativo las fuentes vienen en el paquete y cargan al instante. Si fallan, se sigue igual.
+  const ready = loaded || !!error || Platform.OS === 'web';
+  if (!ready) return <View style={{ flex: 1, backgroundColor: t.bg }} />;
 
   return (
     <>
