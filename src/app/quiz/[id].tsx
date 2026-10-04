@@ -1,40 +1,48 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnswerOption, type OptionState } from '../../components/AnswerOption';
-import { Background } from '../../components/Background';
+import { Illustration } from '../../components/Illustration';
 import { PressableScale } from '../../components/PressableScale';
 import { getCategory } from '../../data/categories';
 import { error as hapticError, success as hapticSuccess } from '../../lib/feedback';
 import { buildQuiz, SECONDS_PER_QUESTION } from '../../lib/quiz';
-import { colors, radius } from '../../theme/theme';
+import { setLastResult, type ReviewItem } from '../../lib/session';
+import { useReduceMotion } from '../../lib/useReduceMotion';
+import { fonts, radius, tones, useTheme } from '../../theme/theme';
 
-const LETTERS = ['A', 'B', 'C', 'D'];
 const TIMED_OUT = -1;
+
+const bestRun = (items: ReviewItem[]) => {
+  let best = 0;
+  let run = 0;
+  for (const i of items) best = Math.max(best, (run = i.ok ? run + 1 : 0));
+  return best;
+};
 
 export default function QuizScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const category = getCategory(id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const t = useTheme();
+  const reduce = useReduceMotion();
 
   const [questions] = useState(() => buildQuiz(category.id));
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [correct, setCorrect] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
+  const [history, setHistory] = useState<ReviewItem[]>([]);
 
   const question = questions[index];
   const answered = selected !== null;
   const isLast = index === questions.length - 1;
+  const streak = [...history].reverse().findIndex((h) => !h.ok);
+  const currentStreak = streak === -1 ? history.length : streak;
 
   const timer = useRef(new Animated.Value(1)).current;
   const enter = useRef(new Animated.Value(0)).current;
-  const feedbackAnim = useRef(new Animated.Value(0)).current;
   const answeredRef = useRef(false);
 
   const resolve = useCallback(
@@ -45,33 +53,23 @@ export default function QuizScreen() {
       setSelected(choice);
 
       const ok = choice === question.correctIndex;
-      if (ok) {
-        hapticSuccess();
-        setCorrect((c) => c + 1);
-        setStreak(streak + 1);
-        setBestStreak((b) => Math.max(b, streak + 1));
-      } else {
-        hapticError();
-        setStreak(0);
-      }
-      Animated.spring(feedbackAnim, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 8 }).start();
+      if (ok) hapticSuccess();
+      else hapticError();
+      setHistory((h) => [
+        ...h,
+        { text: question.text, correct: question.options[question.correctIndex], chosen: choice === TIMED_OUT ? null : question.options[choice], ok },
+      ]);
     },
-    [question, streak, timer, feedbackAnim],
+    [question, timer],
   );
 
-  // Cada pregunta: entrada animada + cuenta regresiva.
+  // Cada pregunta: entrada suave + cuenta regresiva.
   useEffect(() => {
     answeredRef.current = false;
-    feedbackAnim.setValue(0);
-    enter.setValue(0);
+    enter.setValue(reduce ? 1 : 0);
     timer.setValue(1);
-    Animated.timing(enter, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    const countdown = Animated.timing(timer, {
-      toValue: 0,
-      duration: SECONDS_PER_QUESTION * 1000,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    });
+    if (!reduce) Animated.timing(enter, { toValue: 1, duration: 420, easing: Easing.out(Easing.exp), useNativeDriver: true }).start();
+    const countdown = Animated.timing(timer, { toValue: 0, duration: SECONDS_PER_QUESTION * 1000, easing: Easing.linear, useNativeDriver: false });
     countdown.start(({ finished }) => finished && resolve(TIMED_OUT));
     return () => countdown.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -79,10 +77,8 @@ export default function QuizScreen() {
 
   const next = () => {
     if (isLast) {
-      router.replace({
-        pathname: '/results',
-        params: { category: category.id, correct: String(correct), total: String(questions.length), streak: String(bestStreak) },
-      });
+      setLastResult({ category: category.id, items: history, bestStreak: bestRun(history) });
+      router.replace('/results');
     } else {
       setSelected(null);
       setIndex((i) => i + 1);
@@ -96,114 +92,87 @@ export default function QuizScreen() {
     return 'dimmed';
   };
 
-  const timedOut = selected === TIMED_OUT;
   const wasRight = selected === question.correctIndex;
-  const banner = wasRight
-    ? { icon: 'check-circle' as const, color: colors.success, title: '¡Correcto!' }
-    : { icon: 'close-circle' as const, color: colors.danger, title: timedOut ? '¡Se acabó el tiempo!' : 'Incorrecto' };
+  const verdict = wasRight ? 'Correcto' : selected === TIMED_OUT ? 'Se acabó el tiempo' : 'Incorrecto';
+  const verdictColor = wasRight ? t.success : t.danger;
 
   const barWidth = timer.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
-  const barColor = timer.interpolate({ inputRange: [0, 0.3, 0.6, 1], outputRange: [colors.danger, colors.danger, colors.gold, colors.success] });
+  const barColor = timer.interpolate({ inputRange: [0, 0.25, 0.26, 1], outputRange: [t.danger, t.danger, t.ink, t.ink] });
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, backgroundColor: t.bg },
+        container: { flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
+        top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+        close: { width: 48, height: 48, marginLeft: -12, alignItems: 'center', justifyContent: 'center' },
+        counter: { color: t.ink, fontSize: 15, fontFamily: fonts.medium },
+        streak: { minWidth: 48, color: t.muted, fontSize: 14, textAlign: 'right', fontFamily: fonts.medium },
+        segments: { flexDirection: 'row', gap: 4, marginTop: 4 },
+        segment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: t.line },
+        timerTrack: { height: 2, backgroundColor: t.line, marginTop: 10, marginBottom: 16, overflow: 'hidden' },
+        timerFill: { height: '100%' },
+        art: { height: 176, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: category.tone + '22', marginBottom: 20 },
+        question: { color: t.ink, fontSize: 28, lineHeight: 34, fontFamily: fonts.display, marginBottom: 20 },
+        feedback: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line, paddingTop: 14, marginTop: 6 },
+        verdict: { fontSize: 16, fontFamily: fonts.bold },
+        fact: { color: t.muted, fontSize: 15, lineHeight: 22, marginTop: 4, fontFamily: fonts.body },
+        cta: { height: 56, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: t.ink },
+        ctaText: { color: t.inkOnInk, fontSize: 17, fontFamily: fonts.bold },
+      }),
+    [t, insets, category.tone],
+  );
 
   return (
-    <Background tint={category.gradient}>
-      <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.topBar}>
-          <PressableScale onPress={() => router.back()} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Salir del quiz">
-            <MaterialCommunityIcons name="close" size={22} color={colors.text} />
+    <View style={styles.root}>
+      <View style={styles.container}>
+        <View style={styles.top}>
+          <PressableScale onPress={() => router.back()} style={styles.close} accessibilityRole="button" accessibilityLabel="Salir del quiz">
+            <MaterialCommunityIcons name="close" size={24} color={t.ink} />
           </PressableScale>
-          <View style={styles.chip}>
-            <MaterialCommunityIcons name={category.icon} size={16} color={category.gradient[1]} />
-            <Text style={styles.chipText}>{category.title}</Text>
-          </View>
-          <View style={[styles.chip, streak >= 2 && { borderColor: colors.gold }]}>
-            <MaterialCommunityIcons name="fire" size={16} color={streak >= 2 ? colors.gold : colors.textMuted} />
-            <Text style={[styles.chipText, streak >= 2 && { color: colors.gold }]}>{streak}</Text>
-          </View>
-        </View>
-
-        <View style={styles.progressRow}>
-          <Text style={styles.counter}>
-            Pregunta {index + 1}<Text style={{ color: colors.textMuted }}> / {questions.length}</Text>
+          <Text style={styles.counter} accessibilityLabel={`Pregunta ${index + 1} de ${questions.length}`}>
+            {category.title} · {index + 1}/{questions.length}
           </Text>
-          <View style={styles.dots}>
-            {questions.map((_, i) => (
-              <View key={i} style={[styles.dot, i < index && { backgroundColor: category.gradient[1] }, i === index && { backgroundColor: '#fff', width: 18 }]} />
-            ))}
-          </View>
+          <Text style={styles.streak}>{currentStreak >= 2 ? `Racha ${currentStreak}` : ''}</Text>
         </View>
 
-        <View style={styles.timerTrack}>
+        <View style={styles.segments} accessible={false}>
+          {questions.map((_, i) => (
+            <View key={i} style={[styles.segment, i < history.length && { backgroundColor: history[i].ok ? t.success : t.danger }, i === index && !answered && { backgroundColor: t.ink }]} />
+          ))}
+        </View>
+        <View style={styles.timerTrack} accessible={false}>
           <Animated.View style={[styles.timerFill, { width: barWidth, backgroundColor: barColor }]} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
-          <Animated.View
-            style={{
-              opacity: enter,
-              transform: [{ translateX: enter.interpolate({ inputRange: [0, 1], outputRange: [36, 0] }) }],
-            }}
-          >
-            <LinearGradient colors={category.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.questionCard}>
-              <Text style={styles.questionText} accessibilityRole="header">{question.text}</Text>
-            </LinearGradient>
-
+          <Animated.View style={{ opacity: enter, transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
+            <View style={styles.art}>
+              <Illustration kind={question.art} tone={category.id === 'mix' ? tones.ochre : category.tone} size={150} />
+            </View>
+            <Text style={styles.question} accessibilityRole="header">{question.text}</Text>
             {question.options.map((label, i) => (
-              <AnswerOption key={`${question.id}-${i}`} letter={LETTERS[i]} label={label} state={stateOf(i)} disabled={answered} onPress={() => resolve(i)} />
+              <AnswerOption key={`${question.id}-${i}`} index={i} label={label} state={stateOf(i)} disabled={answered} onPress={() => resolve(i)} />
             ))}
           </Animated.View>
 
           {answered && (
-            <Animated.View
-              style={[
-                styles.feedback,
-                { borderColor: banner.color, opacity: feedbackAnim, transform: [{ translateY: feedbackAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] },
-              ]}
-            >
-              <View style={styles.feedbackHead}>
-                <MaterialCommunityIcons name={banner.icon} size={22} color={banner.color} />
-                <Text style={[styles.feedbackTitle, { color: banner.color }]}>{banner.title}</Text>
-              </View>
-              <Text style={styles.fact}>💡 {question.fact}</Text>
-            </Animated.View>
+            <View style={styles.feedback} accessibilityLiveRegion="polite">
+              <Text style={[styles.verdict, { color: verdictColor }]}>{verdict}</Text>
+              <Text style={styles.fact}>{question.fact}</Text>
+            </View>
           )}
         </ScrollView>
 
         <View style={{ minHeight: 56 }}>
           {answered && (
-            <Animated.View style={{ opacity: feedbackAnim }}>
-              <PressableScale onPress={next} accessibilityRole="button" accessibilityLabel={isLast ? 'Ver resultados' : 'Siguiente pregunta'}>
-                <LinearGradient colors={category.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.cta}>
-                  <Text style={styles.ctaText}>{isLast ? 'Ver resultados' : 'Siguiente'}</Text>
-                  <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
-                </LinearGradient>
-              </PressableScale>
-            </Animated.View>
+            <PressableScale onPress={next} style={styles.cta} accessibilityRole="button" accessibilityLabel={isLast ? 'Ver resultados' : 'Siguiente pregunta'}>
+              <Text style={styles.ctaText}>{isLast ? 'Ver resultados' : 'Siguiente'}</Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color={t.inkOnInk} />
+            </PressableScale>
           )}
         </View>
       </View>
-    </Background>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  iconBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  chipText: { color: colors.text, fontWeight: '800', fontSize: 14 },
-  progressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 },
-  counter: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  dots: { flexDirection: 'row', gap: 4, alignItems: 'center' },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
-  timerTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginTop: 12, marginBottom: 18 },
-  timerFill: { height: '100%', borderRadius: 4 },
-  questionCard: { borderRadius: radius.lg, padding: 22, minHeight: 130, justifyContent: 'center', marginBottom: 18 },
-  questionText: { color: '#fff', fontSize: 21, fontWeight: '800', lineHeight: 29 },
-  feedback: { backgroundColor: colors.surface, borderWidth: 1.5, borderRadius: radius.md, padding: 16, marginTop: 4 },
-  feedbackHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  feedbackTitle: { fontSize: 17, fontWeight: '800' },
-  fact: { color: colors.textMuted, fontSize: 14.5, lineHeight: 21 },
-  cta: { height: 56, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '800' },
-});

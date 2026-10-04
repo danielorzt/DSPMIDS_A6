@@ -1,26 +1,66 @@
-export const colors = {
-  bg: '#0B0A1A',
-  bgSoft: '#14122B',
-  surface: 'rgba(255,255,255,0.06)',
-  surfaceStrong: 'rgba(255,255,255,0.10)',
-  border: 'rgba(255,255,255,0.12)',
-  text: '#F5F4FF',
-  textMuted: 'rgba(245,244,255,0.62)',
-  accent: '#8B5CF6',
-  gold: '#FBBF24',
-  success: '#34D399',
-  successBg: 'rgba(52,211,153,0.16)',
-  danger: '#FB7185',
-  dangerBg: 'rgba(251,113,133,0.16)',
+import { useColorScheme } from 'react-native';
+
+export type Palette = {
+  scheme: 'light' | 'dark';
+  bg: string;
+  surface: string;
+  ink: string;
+  inkOnInk: string;
+  muted: string;
+  line: string;
+  success: string;
+  successBg: string;
+  danger: string;
+  dangerBg: string;
 };
 
-export const radius = { sm: 12, md: 18, lg: 24, xl: 32 };
-export const space = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 };
+// Papel y tinta: neutros con matiz cálido, nunca gris puro.
+const light: Palette = {
+  scheme: 'light',
+  bg: '#F4F0E8',
+  surface: '#FBF8F2',
+  ink: '#1B1A17',
+  inkOnInk: '#F4F0E8',
+  muted: '#6A6458',
+  line: '#D8D0C0',
+  success: '#2F7A4B',
+  successBg: 'rgba(47,122,75,0.12)',
+  danger: '#B83A2B',
+  dangerBg: 'rgba(184,58,43,0.11)',
+};
 
-export const shadow = {
-  shadowColor: '#000',
-  shadowOpacity: 0.35,
-  shadowRadius: 18,
-  shadowOffset: { width: 0, height: 10 },
-  elevation: 8,
-} as const;
+const dark: Palette = {
+  scheme: 'dark',
+  bg: '#14130F',
+  surface: '#1D1B16',
+  ink: '#F2EDE3',
+  inkOnInk: '#14130F',
+  muted: '#A39C8D',
+  line: '#38342B',
+  success: '#6DBB86',
+  successBg: 'rgba(109,187,134,0.16)',
+  danger: '#E5806F',
+  dangerBg: 'rgba(229,128,111,0.15)',
+};
+
+export const useTheme = (): Palette => (useColorScheme() === 'dark' ? dark : light);
+
+/** Tonos de acento: se usan en pocas dosis (ilustraciones y formas de respuesta). */
+export const tones = {
+  terracotta: '#C8553D',
+  ochre: '#D9A441',
+  teal: '#2F7F79',
+  plum: '#7A5A9A',
+  ultramarine: '#3B4FC4',
+  moss: '#5E8C4A',
+};
+
+export const fonts = {
+  display: 'InstrumentSerif_400Regular',
+  displayItalic: 'InstrumentSerif_400Regular_Italic',
+  body: 'DMSans_400Regular',
+  medium: 'DMSans_500Medium',
+  bold: 'DMSans_700Bold',
+};
+
+export const radius = { sm: 10, md: 14, lg: 20 };
