@@ -1,20 +1,20 @@
 import { useRef } from 'react';
-import { Animated, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { tap } from '../lib/feedback';
 
 type Props = Omit<PressableProps, 'style'> & { style?: StyleProp<ViewStyle>; haptic?: boolean };
 
-/** Pressable con resorte de escala al tocar: respuesta táctil inmediata. */
+/** Pressable con un leve hundimiento al tocar (ease-out corto, sin rebote). */
 export function PressableScale({ style, onPressIn, onPressOut, onPress, haptic = true, children, ...rest }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
   const to = (v: number) =>
-    Animated.spring(scale, { toValue: v, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
+    Animated.timing(scale, { toValue: v, duration: 110, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
 
   return (
     <Pressable
       {...rest}
       onPressIn={(e) => {
-        to(0.96);
+        to(0.98);
         onPressIn?.(e);
       }}
       onPressOut={(e) => {

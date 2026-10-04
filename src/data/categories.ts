@@ -1,32 +1,30 @@
-import type { ComponentProps } from 'react';
-import type { MaterialCommunityIcons } from '@expo/vector-icons';
-
-export type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+import type { ArtKind } from '../components/Illustration';
+import { tones } from '../theme/theme';
 
 export type Category = {
   id: string;
   title: string;
   subtitle: string;
-  icon: IconName;
-  gradient: [string, string];
+  art: ArtKind;
+  tone: string;
 };
 
-// Solo se usan nombres de compañías en preguntas factuales: sin logos, personajes ni arte con copyright.
+// Solo se nombran compañías en preguntas factuales: sin logos, personajes ni arte con copyright.
 export const CATEGORIES: Category[] = [
-  { id: 'nintendo', title: 'Nintendo', subtitle: 'Consolas y portátiles', icon: 'nintendo-switch', gradient: ['#FF5E62', '#FF9966'] },
-  { id: 'playstation', title: 'PlayStation', subtitle: 'La era Sony', icon: 'sony-playstation', gradient: ['#4776E6', '#8E54E9'] },
-  { id: 'xbox', title: 'Xbox', subtitle: 'El universo Microsoft', icon: 'microsoft-xbox', gradient: ['#11998E', '#38EF7D'] },
-  { id: 'sega', title: 'Sega', subtitle: 'Velocidad y nostalgia', icon: 'lightning-bolt', gradient: ['#2193B0', '#6DD5ED'] },
-  { id: 'retro', title: 'Retro y Arcade', subtitle: 'Los clásicos de siempre', icon: 'space-invaders', gradient: ['#F7971E', '#FFD200'] },
-  { id: 'general', title: 'Cultura Gamer', subtitle: 'Términos y curiosidades', icon: 'head-lightbulb', gradient: ['#DA22FF', '#9733EE'] },
+  { id: 'nintendo', title: 'Nintendo', subtitle: 'Consolas y portátiles', art: 'hybrid', tone: tones.terracotta },
+  { id: 'playstation', title: 'PlayStation', subtitle: 'La era Sony', art: 'controller', tone: tones.ultramarine },
+  { id: 'xbox', title: 'Xbox', subtitle: 'El universo Microsoft', art: 'sensor', tone: tones.moss },
+  { id: 'sega', title: 'Sega', subtitle: 'Velocidad y nostalgia', art: 'spikes', tone: tones.teal },
+  { id: 'retro', title: 'Retro y Arcade', subtitle: 'Los clásicos de siempre', art: 'pong', tone: tones.ochre },
+  { id: 'general', title: 'Cultura Gamer', subtitle: 'Términos y curiosidades', art: 'bubble', tone: tones.plum },
 ];
 
 export const MIX: Category = {
   id: 'mix',
-  title: 'Modo Mezcla',
+  title: 'Modo mezcla',
   subtitle: '10 preguntas de todas las categorías',
-  icon: 'star-four-points',
-  gradient: ['#F953C6', '#B91D73'],
+  art: 'sparkle',
+  tone: tones.ochre,
 };
 
 export const getCategory = (id: string): Category =>

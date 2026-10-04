@@ -6,8 +6,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#0B0A1A",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F4F0E8",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.uniminuto.pixelquest"
@@ -15,7 +15,7 @@
     "android": {
       "package": "com.uniminuto.pixelquest",
       "adaptiveIcon": {
-        "backgroundColor": "#0B0A1A",
+        "backgroundColor": "#F4F0E8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

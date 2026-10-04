@@ -34,8 +34,8 @@ export function buildQuiz(categoryId: string): PlayableQuestion[] {
 }
 
 export function getRank(accuracy: number) {
-  if (accuracy === 100) return { title: 'Leyenda Gamer', emoji: '👑', message: '¡Puntuación perfecta! Dominas el tema.' };
-  if (accuracy >= 75) return { title: 'Jugador Élite', emoji: '🏆', message: 'Gran partida, sabes mucho de videojuegos.' };
-  if (accuracy >= 50) return { title: 'Aventurero', emoji: '🎮', message: 'Buen camino. Un nivel más y lo logras.' };
-  return { title: 'Novato con Potencial', emoji: '🌱', message: 'Todos empezamos así. ¡Inténtalo otra vez!' };
+  if (accuracy === 100) return { title: 'Leyenda gamer', message: 'Puntuación perfecta. Dominas el tema.' };
+  if (accuracy >= 75) return { title: 'Jugador élite', message: 'Gran partida: sabes mucho de videojuegos.' };
+  if (accuracy >= 50) return { title: 'Aventurero', message: 'Buen camino. Una ronda más y lo logras.' };
+  return { title: 'Novato con potencial', message: 'Todos empezamos así. Repasa abajo y vuelve a intentarlo.' };
 }

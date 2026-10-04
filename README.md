@@ -16,13 +16,17 @@ música ni arte de terceros, así que no hay material con copyright: los íconos
 | Navegación fluida | Expo Router (Stack) con transiciones `slide`, `fade_from_bottom` y `fade` |
 | SQLite | `src/lib/scores.ts` guarda el mejor puntaje por categoría con `expo-sqlite` (en web usa `localStorage`) |
 
-## Experiencia de usuario
+## Diseño y experiencia de usuario
 
-- Tema oscuro con degradados por categoría y tarjetas translúcidas.
-- Animaciones: entrada escalonada de tarjetas, resorte al tocar, sacudida en respuesta incorrecta, anillo de progreso animado.
-- Temporizador de 20 s por pregunta, racha de aciertos y retroalimentación háptica.
-- Tras cada respuesta se muestra un dato curioso para aprender algo.
-- Etiquetas de accesibilidad en botones y opciones.
+Dirección visual: **minimalista y sobria**, papel cálido y tinta (con modo oscuro automático), tipografías
+Instrument Serif + DM Sans y una paleta de acentos usada en dosis pequeñas.
+
+- Cada pregunta tiene una **ilustración original animada** (vectores propios con `react-native-svg`, 29 motivos): no hay imágenes ni GIF de terceros.
+- Cada respuesta lleva una forma (triángulo, rombo, círculo, cuadrado), al estilo de los quizzes de aula.
+- Temporizador de 20 s, racha, vibración al responder y un dato curioso tras cada respuesta.
+- Resultados con repaso de cada pregunta y su respuesta correcta.
+- Respeta "reducir movimiento", usa áreas táctiles de 48 dp y etiquetas de accesibilidad.
+- La guía de diseño usada es la skill [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0), instalada en `.claude/skills/impeccable` sin sus hooks.
 
 ## Ejecutar
 
@@ -37,7 +41,7 @@ npm run typecheck
 ```
 src/
   app/          rutas (Expo Router): index, quiz/[id], results
-  components/   Background, CategoryCard, AnswerOption, PressableScale
+  components/   Illustration, ShapeGlyph, CategoryRow, AnswerOption, PressableScale
   data/         categorías y banco de preguntas (50 preguntas)
   lib/          lógica del quiz, SQLite, háptica
   theme/        colores, radios y sombras
